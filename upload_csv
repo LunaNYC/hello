@@ -1,7 +1,6 @@
 from django.utils import timezone
 import csv
 import datetime
-from django.utils import timezone
 
 def load_csv(filename):
     with open(filename, newline='') as csvfile:
@@ -11,33 +10,29 @@ def load_csv(filename):
     return data
 
 if __name__ == "__main__":
-    data = load_csv('grades_for_upload_20220323_append.csv')
+    data = load_csv('test.csv')
     errors = []
     ct = 0
     total = len(data)
     error_ids = set()
     u = User.objects.get(username='luna')
-    ct = 0
-    filename = './test.csv'
-    ss = load_csv('grades_for_upload_20220323_append.csv')
-    # student_id	school_year	esid	zone_dbn
-    total = len(ss)
-    for student_id, school_year, esid, zone_dbn in ss:
+    start = datetime.datetime.today()
+    total = len(data)
+    for id, osis_id, school_year, grade_type, course_type, course_name, score in data:
         try:
-            #......
+            sc = StudentCourse.objects.get(id=id)
+            sc.grade_type_id = grade_type
+            sc.save()
             ct += 1
-
-            if ct % 100 == 0:
+            if ct % 1000 == 0:
                 timelap = datetime.datetime.today()-start
                 print('Processed {} records out of {} - {}% - {}'.format(ct,total, ct/total*100, timelap))
         except Exception as e:
             error = {}
             error['msg'] = str(e)
-            error['ids'] = (student_id, esid, zone_dbn)
+            error['ids'] = (id, osis_id, grade_type)
             errors.append(error)
-            error_ids.add(student_id)
-            print('******************** error ' + student_id + ' dbn '+zone_dbn+': ' + str(e))
-
-
-    print('Finished ' + str(ct) + ' Zone Updates')
-    print('error count {} check errors object'.format(len(errors)))
+            error_ids.append(id)
+            print('******************** error ' + id + str(e))
+print('Finished ' + str(ct) + ' records')
+print('error count {} check errors object'.format(len(errors)))
