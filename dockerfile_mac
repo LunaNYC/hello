@@ -1,0 +1,59 @@
+FROM python:3.5-stretch
+ENV PYTHONUNBUFFERED=1 LICENSE=accept
+# install version of postgresql to match server
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+#RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc  --no-check-certificate | apt-key add -
+# RUN apt-get update; apt-get install -y postgresql-client-12 gettext gdal-bin apt-transport-https ca-certificates
+RUN apt-get update; apt-get install -y postgresql-client gettext gdal-bin apt-transport-https ca-certificates
+# Assets
+WORKDIR /root/
+# RUN apt-get install -y xfonts-base xfonts-75dpi && \
+#     wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb && \
+#    dpkg -i wkhtmltox_0.12.5-1.stretch_amd64.deb
+# this below for mac
+RUN apt-get install -y xfonts-base xfonts-75dpi && \
+    wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.stretch_arm64.deb && \
+    dpkg -i wkhtmltox_0.12.6-1.stretch_arm64.deb
+RUN curl -sL https://deb.nodesource.com/setup_8.x -o nodesource_setup.sh
+RUN bash nodesource_setup.sh
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg |  apt-key add -
+#RUN printf "deb http://archive.debian.org/debian/ stretch main\ndeb-src http://archive.debian.org/debian/ stretch main\ndeb http://security.debian.org stretch/updates main\ndeb-src http://security.debian.org stretch/updates main" > /etc/apt/sources.list
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN apt-get update && apt-get install -y nodejs yarn xvfb libfontconfig fonts-wqy-zenhei fonts-beng xmlsec1 fonts-noto zip
+ADD scripts/node.sh /root/node.sh
+ADD package.json /root/package.json
+RUN yarn install --no-progress
+ENV NODE_PATH=/root/node_modules/.bin/
+ENV PYTHONPATH=/code/doesems/:$PYTHONPATH
+ENV PATH=$PATH:$NODE_PATH
+#ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/mqm/lib64
+#RUN wget https://s3.amazonaws.com/bb-ose-utils/8.0.0.9-WS-MQC-LinuxX64.tar.gz
+#RUN mv "8.0.0.9-WS-MQC-LinuxX64.tar.gz" WS-MQC-LinuxX64.tar.gz
+#RUN mkdir WS-MQC-LinuxX64
+#WORKDIR WS-MQC-LinuxX64
+#RUN tar xvzf ../WS-MQC-LinuxX64.tar.gz
+#ADD mqlicense.sh mqlicense.sh
+#RUN echo 1 | ./mqlicense.sh --accept
+#RUN apt-get install -y rpm cpio
+#RUN ./crtmqpkg doesems
+#WORKDIR /var/tmp/mq_rpms/doesems/x86_64
+#RUN rpm -ivh --nodeps --force-debian /var/tmp/mq_rpms/doesems/x86_64/MQSeriesRuntime*.rpm
+#RUN rpm -ivh --nodeps --force-debian /var/tmp/mq_rpms/doesems/x86_64/MQSeriesClient*.rpm
+#RUN rpm -ivh --nodeps --force-debian /var/tmp/mq_rpms/doesems/x86_64/MQSeriesSDK*.rpm
+RUN mkdir /code
+ADD requirements.txt requirements.txt
+RUN pip install --default-timeout=100 -r requirements.txt
+#RUN pip install py3mqi
+# ADD . /code/
+WORKDIR /code
+#RUN python doesems/manage.py migrate
+
+# Actually install the react stuff! (not sure if this is actually working or not :/ )
+WORKDIR /code/react/
+RUN yarn install --no-progress
+
+WORKDIR /code
+
+# Add useful aliases here:
+RUN echo 'alias dj="python doesems/manage.py"' >> ~/.bashrc
