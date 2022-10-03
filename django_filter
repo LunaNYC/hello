@@ -1,0 +1,10 @@
+        # filter Q
+        school_year = SchoolYear.objects.get(pk=4)
+        previous_school_year = SchoolYear.objects.get(next_school_year=school_year)
+        last_2_years = []
+        last_2_years.append(school_year)
+        last_2_years.append(previous_school_year)
+        filters = {
+            'school_year__in': last_2_years
+        }
+        grade_type_query = StudentGradeType.objects.filter(Q(id=1) | Q(**filters))
